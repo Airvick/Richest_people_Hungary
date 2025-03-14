@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hungary's Richest People</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            color: #ffd700;
+        }
+
+        .counter-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .counter {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: #ffd700;
+            margin: 1rem 0;
+        }
+
+        .counter-label {
+            font-size: 1.2rem;
+            color: #cccccc;
+        }
+
+        .people-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .person-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .person-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .person-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            border: 3px solid #ffd700;
+            object-fit: cover;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .person-name {
+            font-size: 1.5rem;
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+        }
+
+        .person-net-worth {
+            font-size: 1.2rem;
+            color: #00ff00;
+            margin-bottom: 0.5rem;
+        }
+
+        .person-company, .person-industry {
+            color: #cccccc;
+            margin-bottom: 0.3rem;
+        }
+
+        .earnings-display {
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .earnings-amount {
+            font-size: 1.5rem;
+            color: #00ff00;
+            font-weight: 600;
+        }
+
+        .person-earnings {
+            color: #00ff00;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .seconds-counter {
+            font-size: 1.2rem;
+            color: #cccccc;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hungary's Richest People</h1>
+        
+        <div class="counter-container">
+            <div class="counter-label">Combined Earnings per Second</div>
+            <div class="counter" id="earnings-counter">$0</div>
+            <div class="seconds-counter">Time elapsed: <span id="seconds">0</span> seconds</div>
+        </div>
+
+        <div class="people-grid">
+            {% for person in richest_people %}
+            <div class="person-card">
+                <img src="{{ person.image_url }}" alt="{{ person.name }}" class="person-image" onerror="this.src='https://via.placeholder.com/150?text={{ person.name|replace(' ', '+') }}'">
+                <div class="person-name">{{ person.name }}</div>
+                <div class="person-net-worth">${{ "%.1f"|format(person.net_worth) }}B</div>
+                <div class="person-company">{{ person.company }}</div>
+                <div class="person-industry">{{ person.industry }}</div>
+                <div class="earnings-display">
+                    <div class="earnings-amount" id="earnings-{{ loop.index0 }}">$0</div>
+                    <div class="person-earnings">per second</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Calculate total net worth in billions
+        const richestPeople = JSON.parse('{{ richest_people|tojson|safe }}');
+        const totalNetWorthBillions = richestPeople.reduce((sum, person) => sum + person.net_worth, 0);
+        
+        // Convert to actual amount (billions to dollars)
+        const totalNetWorth = totalNetWorthBillions * 1000000000;
+        
+        // Calculate earnings per second (assuming 5% annual return)
+        const annualReturn = 0.05;
+        const earningsPerSecond = (totalNetWorth * annualReturn) / (365 * 24 * 60 * 60);
+        
+        // Calculate individual earnings per second
+        const individualEarnings = richestPeople.map(person => {
+            const personNetWorth = person.net_worth * 1000000000; // Convert billions to dollars
+            return (personNetWorth * annualReturn) / (365 * 24 * 60 * 60);
+        });
+        
+        // Update counters every 100ms for smoother animation
+        let currentEarnings = 0;
+        let seconds = 0;
+        
+        const updateCounters = () => {
+            // Update total earnings
+            currentEarnings += earningsPerSecond / 10;
+            document.getElementById('earnings-counter').textContent = 
+                `$${currentEarnings.toFixed(2)}`;
+            
+            // Update individual earnings
+            individualEarnings.forEach((earning, index) => {
+                const element = document.getElementById(`earnings-${index}`);
+                if (element) {
+                    const currentIndividualEarnings = parseFloat(element.textContent.replace('$', '')) + (earning / 10);
+                    element.textContent = `$${currentIndividualEarnings.toFixed(2)}`;
+                }
+            });
+            
+            // Update seconds counter
+            seconds += 0.1;
+            document.getElementById('seconds').textContent = seconds.toFixed(1);
+        };
+
+        // Update 10 times per second for smoother animation
+        setInterval(updateCounters, 100);
+        updateCounters(); // Initial update
+    </script>
+</body>
+</html> 
